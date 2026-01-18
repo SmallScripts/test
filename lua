@@ -1,192 +1,188 @@
+-- Hyper Hub | Auto Execute | No Key
+
 -- Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
 
 local player = Players.LocalPlayer
 
--- GUI
+-- Prevent duplicate execution
+if game.CoreGui:FindFirstChild("HyperHub") then
+	game.CoreGui.HyperHub:Destroy()
+end
+
+-- ScreenGui
 local gui = Instance.new("ScreenGui")
 gui.Name = "HyperHub"
 gui.ResetOnSpawn = false
-gui.Parent = player:WaitForChild("PlayerGui")
+gui.Parent = game.CoreGui
 
--- Rainbow color function
-local function getRainbowColor(timeOffset)
-    local t = tick() + timeOffset
-    local r = math.sin(t*2)*0.5 + 0.5
-    local g = math.sin(t*2 + 2)*0.5 + 0.5
-    local b = math.sin(t*2 + 4)*0.5 + 0.5
-    return Color3.new(r, g, b)
+-- RGB
+local function rainbow()
+	return Color3.fromHSV((tick() % 6) / 6, 1, 1)
 end
 
--- Main frame
+-- Main Frame
 local main = Instance.new("Frame")
-main.Size = UDim2.fromScale(0.45, 0.6)
-main.Position = UDim2.fromScale(0.3, 0.2)
-main.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-main.BorderSizePixel = 0
+main.Size = UDim2.fromScale(0.38, 0.6)
+main.Position = UDim2.fromScale(0.31, 0.2)
+main.BackgroundColor3 = Color3.fromRGB(15,15,15)
 main.Parent = gui
 
--- Draggable
-local dragging = false
-local dragInput, mousePos, framePos
+Instance.new("UICorner", main).CornerRadius = UDim.new(0,18)
 
-local function update(input)
-    local delta = input.Position - mousePos
-    main.Position = UDim2.new(
-        math.clamp(framePos.X.Scale + delta.X/GuiService:GetScreenResolution().X, 0, 1),
-        framePos.X.Offset + delta.X,
-        math.clamp(framePos.Y.Scale + delta.Y/GuiService:GetScreenResolution().Y, 0, 1),
-        framePos.Y.Offset + delta.Y
-    )
-end
+local stroke = Instance.new("UIStroke", main)
+stroke.Thickness = 3
 
-main.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        mousePos = input.Position
-        framePos = main.Position
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
-            end
-        end)
-    end
+RunService.RenderStepped:Connect(function()
+	stroke.Color = rainbow()
 end)
 
-main.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-        dragInput = input
-    end
+-- Drag (touch + mouse)
+local dragging, dragStart, startPos
+
+main.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+	or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		dragStart = input.Position
+		startPos = main.Position
+	end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+	or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = false
+	end
 end)
 
 UserInputService.InputChanged:Connect(function(input)
-    if input == dragInput and dragging then
-        update(input)
-    end
-end)
-
--- Rounded corners
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 16)
-corner.Parent = main
-
--- Rainbow border
-local border = Instance.new("UIStroke")
-border.Thickness = 3
-border.Parent = main
-
-RunService.RenderStepped:Connect(function()
-    border.Color = getRainbowColor(0)
+	if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement
+	or input.UserInputType == Enum.UserInputType.Touch) then
+		local delta = input.Position - dragStart
+		main.Position = UDim2.new(
+			startPos.X.Scale,
+			startPos.X.Offset + delta.X,
+			startPos.Y.Scale,
+			startPos.Y.Offset + delta.Y
+		)
+	end
 end)
 
 -- Title
 local title = Instance.new("TextLabel")
-title.Size = UDim2.fromScale(1, 0.1)
-title.Position = UDim2.fromScale(0, 0)
+title.Size = UDim2.fromScale(1, 0.08)
 title.BackgroundTransparency = 1
-title.Text = "Hyper Hub"
-title.TextScaled = true
+title.Text = "Hyper Hub | PvP"
 title.Font = Enum.Font.GothamBold
-title.TextColor3 = Color3.new(1,1,1)
+title.TextScaled = true
+title.TextColor3 = Color3.fromRGB(0,255,140)
 title.Parent = main
 
--- Close button
-local closeBtn = Instance.new("TextButton")
-closeBtn.Size = UDim2.fromScale(0.08,0.08)
-closeBtn.Position = UDim2.fromScale(0.92,0)
-closeBtn.Text = "X"
-closeBtn.BackgroundColor3 = Color3.fromRGB(50,50,50)
-closeBtn.TextColor3 = Color3.new(1,1,1)
-closeBtn.Font = Enum.Font.GothamBold
-closeBtn.TextScaled = true
-closeBtn.Parent = main
+-- Close (no keybind, just button)
+local close = Instance.new("TextButton")
+close.Size = UDim2.fromScale(0.08,0.08)
+close.Position = UDim2.fromScale(0.92,0)
+close.Text = "X"
+close.Font = Enum.Font.GothamBold
+close.TextScaled = true
+close.TextColor3 = Color3.fromRGB(255,80,80)
+close.BackgroundTransparency = 1
+close.Parent = main
 
-closeBtn.MouseButton1Click:Connect(function()
-    main.Visible = false
-    hhButton.Visible = true
+close.MouseButton1Click:Connect(function()
+	gui:Destroy()
 end)
 
--- Small HH Hub button
-local hhButton = Instance.new("TextButton")
-hhButton.Size = UDim2.fromScale(0.1,0.05)
-hhButton.Position = UDim2.fromScale(0,0)
-hhButton.Text = "HH Hub"
-hhButton.BackgroundColor3 = Color3.fromRGB(25,25,25)
-hhButton.TextColor3 = Color3.new(1,1,1)
-hhButton.Font = Enum.Font.GothamBold
-hhButton.TextScaled = true
-hhButton.Visible = false
-hhButton.Parent = gui
-
-hhButton.MouseButton1Click:Connect(function()
-    main.Visible = true
-    hhButton.Visible = false
-end)
-
--- Function to create sliders
-local function createSlider(text, position, min, max, default, callback)
-    -- Label
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.fromScale(0.8, 0.05)
-    label.Position = position
-    label.BackgroundTransparency = 1
-    label.TextScaled = true
-    label.Font = Enum.Font.Gotham
-    label.TextColor3 = Color3.new(1,1,1)
-    label.Text = text .. ": " .. default
-    label.Parent = main
-
-    -- Slider frame
-    local sliderFrame = Instance.new("Frame")
-    sliderFrame.Size = UDim2.fromScale(0.8, 0.05)
-    sliderFrame.Position = position + UDim2.fromScale(0,0.06)
-    sliderFrame.BackgroundColor3 = Color3.fromRGB(50,50,50)
-    sliderFrame.Parent = main
-
-    local sliderBorder = Instance.new("UIStroke")
-    sliderBorder.Thickness = 2
-    sliderBorder.Parent = sliderFrame
-
-    local sliderFill = Instance.new("Frame")
-    sliderFill.Size = UDim2.fromScale((default - min)/(max - min),1)
-    sliderFill.BackgroundColor3 = Color3.fromRGB(0,255,0)
-    sliderFill.Parent = sliderFrame
-
-    local draggingSlider = false
-
-    sliderFrame.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            draggingSlider = true
-        end
-    end)
-
-    sliderFrame.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            draggingSlider = false
-        end
-    end)
-
-    UserInputService.InputChanged:Connect(function(input)
-        if draggingSlider and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            local relativeX = math.clamp(input.Position.X - sliderFrame.AbsolutePosition.X, 0, sliderFrame.AbsoluteSize.X)
-            local value = math.floor((relativeX / sliderFrame.AbsoluteSize.X) * (max - min) + min)
-            sliderFill.Size = UDim2.fromScale((value - min)/(max - min), 1)
-            label.Text = text .. ": " .. value
-            callback(value)
-        end
-    end)
-
-    -- Rainbow border for slider
-    RunService.RenderStepped:Connect(function()
-        sliderBorder.Color = getRainbowColor(position.Y.Scale*10)
-    end)
+-- Section
+local function section(text, y)
+	local lbl = Instance.new("TextLabel")
+	lbl.Size = UDim2.fromScale(0.9,0.05)
+	lbl.Position = UDim2.fromScale(0.05,y)
+	lbl.BackgroundTransparency = 1
+	lbl.Text = text
+	lbl.Font = Enum.Font.GothamBold
+	lbl.TextScaled = true
+	lbl.TextColor3 = Color3.fromRGB(200,200,200)
+	lbl.Parent = main
 end
 
--- Create all sliders
-createSlider("Speed Boost", UDim2.fromScale(0.1,0.15), 0, 100, 48, function(value) print("Speed Boost:", value) end)
-createSlider("Spin (Helicopter)", UDim2.fromScale(0.1,0.3), 0, 360, 45, function(value) print("Spin:", value) end)
-createSlider("Auto Steal", UDim2.fromScale(0.1,0.45), 0, 100, 0, function(value) print("Auto Steal:", value) end)
-createSlider("Hit Radius", UDim2.fromScale(0.1,0.6), 0, 50, 10, function(value) print("Hit Radius:", value) end)
+-- Toggle
+local function toggle(text, y)
+	local frame = Instance.new("Frame")
+	frame.Size = UDim2.fromScale(0.9,0.07)
+	frame.Position = UDim2.fromScale(0.05,y)
+	frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
+	frame.Parent = main
+	Instance.new("UICorner", frame).CornerRadius = UDim.new(0,12)
+
+	local stroke = Instance.new("UIStroke", frame)
+	stroke.Thickness = 2
+
+	RunService.RenderStepped:Connect(function()
+		stroke.Color = rainbow()
+	end)
+
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.fromScale(0.7,1)
+	label.BackgroundTransparency = 1
+	label.Text = text
+	label.Font = Enum.Font.Gotham
+	label.TextScaled = true
+	label.TextColor3 = Color3.new(1,1,1)
+	label.Parent = frame
+
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.fromScale(0.2,0.6)
+	btn.Position = UDim2.fromScale(0.75,0.2)
+	btn.Text = ""
+	btn.BackgroundColor3 = Color3.fromRGB(60,60,60)
+	btn.Parent = frame
+	Instance.new("UICorner", btn).CornerRadius = UDim.new(1,0)
+
+	local enabled = false
+	btn.MouseButton1Click:Connect(function()
+		enabled = not enabled
+		btn.BackgroundColor3 = enabled and Color3.fromRGB(255,215,0) or Color3.fromRGB(60,60,60)
+	end)
+end
+
+-- Slider (visual)
+local function slider(text, y)
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.fromScale(0.9,0.05)
+	label.Position = UDim2.fromScale(0.05,y)
+	label.BackgroundTransparency = 1
+	label.Text = text
+	label.Font = Enum.Font.Gotham
+	label.TextScaled = true
+	label.TextColor3 = Color3.new(1,1,1)
+	label.Parent = main
+
+	local bar = Instance.new("Frame")
+	bar.Size = UDim2.fromScale(0.9,0.03)
+	bar.Position = UDim2.fromScale(0.05,y+0.05)
+	bar.BackgroundColor3 = Color3.fromRGB(40,40,40)
+	bar.Parent = main
+	Instance.new("UICorner", bar).CornerRadius = UDim.new(1,0)
+
+	local fill = Instance.new("Frame")
+	fill.Size = UDim2.fromScale(0.4,1)
+	fill.BackgroundColor3 = Color3.fromRGB(255,215,0)
+	fill.Parent = bar
+	Instance.new("UICorner", fill).CornerRadius = UDim.new(1,0)
+end
+
+-- Build UI
+section("MOVEMENT", 0.1)
+toggle("Speed / Booster", 0.16)
+toggle("Anti Ragdoll", 0.24)
+slider("Move Speed", 0.32)
+slider("Air Speed", 0.40)
+
+section("COMBAT", 0.5)
+toggle("Hitbox Expander", 0.56)
+toggle("Auto Steal", 0.64)
+slider("Bat Range", 0.72)
